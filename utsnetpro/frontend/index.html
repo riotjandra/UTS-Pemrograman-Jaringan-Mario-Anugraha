@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>DONASY</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			margin: 0;
+			background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+			color: #333;
+			display: flex;
+			justify-content: center;
+			align-items: flex-start;
+			min-height: 100vh;
+			padding-top: 70px; /* Ruang untuk judul tetap */
+		}
+
+		h1 {
+			position: fixed;
+			top: 0;
+			width: 100%;
+			text-align: center;
+			color: #1b5e20; /* Hijau tua */
+			background-color: #ffffff;
+			padding: 15px 0;
+			margin: 0;
+			font-size: 2.5em;
+			letter-spacing: 2px;
+			box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+			z-index: 1000;
+		}
+
+		#donations {
+			width: 90%;
+			max-width: 600px;
+			padding: 20px;
+			background-color: #ffffff;
+			border-radius: 10px;
+			box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+			max-height: 500px;
+			overflow-y: auto;
+			margin-top: 10px;
+		}
+
+		.donation {
+			background: linear-gradient(120deg, #e8f5e9, #c5e1a5);
+			border: 1px solid #a5d6a7;
+			border-radius: 8px;
+			padding: 15px;
+			margin: 10px 0;
+			animation: fadeIn 0.5s ease;
+			box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.1);
+			transition: transform 0.2s;
+		}
+
+		.donation:hover {
+			transform: scale(1.02);
+		}
+
+		.donation p {
+			margin: 5px 0;
+		}
+
+		.donation .amount {
+			font-weight: bold;
+			color: #2e7d32;
+		}
+
+		@keyframes fadeIn {
+			from {
+				opacity: 0;
+				transform: translateY(10px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		#status {
+			text-align: center;
+			margin-top: 10px;
+			color: #888;
+		}
+
+		.error {
+			color: #d32f2f;
+		}
+
+		/* Scrollbar styling */
+		#donations::-webkit-scrollbar {
+			width: 8px;
+		}
+
+		#donations::-webkit-scrollbar-track {
+			background: #f1f1f1;
+			border-radius: 10px;
+		}
+
+		#donations::-webkit-scrollbar-thumb {
+			background-color: #1b5e20;
+			border-radius: 10px;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>DONASY</h1>
+	<div id="donations"></div>
+	<p id="status" class="error"></p>
+
+	<script>
+		const donationsDiv = document.getElementById("donations");
+		const statusDiv = document.getElementById("status");
+		const socket = new WebSocket("ws://localhost:5500/ws");
+
+		// Event handler saat menerima pesan donasi baru
+		socket.onmessage = function (event) {
+			const data = JSON.parse(event.data);
+
+			// Memastikan nominal donasi adalah angka
+			if (isNaN(data.amount)) {
+				console.error("Nominal donasi tidak valid:", data.amount);
+				statusDiv.textContent = "Pesan dengan nominal tidak valid diterima.";
+				return; 
+			}
+
+			// Membuat elemen baru untuk pesan donasi
+			const donationElement = document.createElement("div");
+			donationElement.className = "donation";
+			donationElement.innerHTML = `
+				<p>${data.message}</p>
+				<p class="amount">Nominal: Rp${data.amount.toLocaleString("id-ID")}</p>
+			`;
+
+			// Menambahkan elemen pesan donasi ke dalam div
+			donationsDiv.appendChild(donationElement);
+
+			// Memastikan hanya 10 pesan terbaru yang ditampilkan
+			if (donationsDiv.childNodes.length > 10) {
+				donationsDiv.removeChild(donationsDiv.firstChild);
+			}
+		};
+
+		// Event handler saat koneksi WebSocket terbuka
+		socket.onopen = function () {
+			console.log("Terhubung ke server WebSocket.");
+			statusDiv.textContent = ""; // Kosongkan pesan status untuk tidak menampilkan teks apa pun
+			statusDiv.classList.remove("error");
+		};
+
+		// Event handler untuk menangani error WebSocket
+		socket.onerror = function (error) {
+			console.error("Kesalahan WebSocket:", error);
+			statusDiv.textContent = "Kesalahan koneksi WebSocket. Silakan coba lagi.";
+			statusDiv.classList.add("error");
+		};
+
+		// Event handler saat koneksi WebSocket ditutup
+		socket.onclose = function (event) {
+			console.log("Koneksi WebSocket ditutup:", event);
+			statusDiv.textContent = "Koneksi terputus. Menunggu koneksi ulang...";
+			statusDiv.classList.add("error");
+		};
+	</script>
+</body>
+
+</html>
+
